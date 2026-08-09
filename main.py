@@ -1,4 +1,4 @@
-Şimport os
+import os
 import requests
 import telebot
 import random
