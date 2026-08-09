@@ -37,11 +37,11 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Şəkildəki 'Ə/ə' Hərflərini Avtomatik 'E/e' Edən Köməkçi Funksiya
-def sanitize_text(text):
+# 2. Yalnız 'Ə' və 'ə' hərflərini təmizləyən funksiya
+def fix_only_e(text):
     if not text:
         return ""
-    return str(text).replace("Ə", "E").replace("ə", "e").replace("I", "I").replace("ı", "i")
+    return str(text).replace("Ə", "E").replace("ə", "e")
 
 # 3. Nəticə Alqoritmi
 def get_smart_prediction(home, away):
@@ -49,11 +49,11 @@ def get_smart_prediction(home, away):
     hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
     
     predictions = [
-        "P1 (Ev Sahibi Qelebesi)",
-        "Qol / Qol (Her İki Komanda)",
-        "2.5 Ust (Toplam Qol Sayi)",
-        "P2 (Qonaq Komanda Qelebesi)",
-        "X2 / GG (Beraberlik ve ya Qonaq)"
+        "P1 (Ev Sahibi Qələbəsi)",
+        "Qol / Qol (Hər İki Komanda)",
+        "2.5 Üst (Toplam Qol Sayı)",
+        "P2 (Qonaq Komanda Qələbəsi)",
+        "X2 / GG (Bərabərlik və ya Qonaq)"
     ]
     
     selected_index = hash_value % len(predictions)
@@ -132,7 +132,7 @@ def draw_pastel_gradient(width, height):
             
     return base
 
-# 7. Təmizlənmiş və Kvadratsız Şəkil Hazırlayan Funksiya
+# 7. Yalnız 'Ə' Hərfi Düzəldilmiş Şəkil Hazırlayan Funksiya
 def create_coupon_image(matches):
     width = 800
     height = 200 + (len(matches) * 130)
@@ -152,17 +152,17 @@ def create_coupon_image(matches):
     text_purple = (100, 40, 140, 255)   
     text_gray = (90, 100, 120, 255)     
     
-    # Bütün yazılar sanitize_text() funksiyasından keçirilir
-    draw.text((width // 2, 45), sanitize_text("Şansım.az"), fill=text_dark, font=font_logo, anchor="mm")
-    draw.text((width // 2, 85), sanitize_text("GÜNÜN TƏXMİNLƏRİ"), fill=text_purple, font=font_title, anchor="mm")
+    # Mətnlər fix_only_e() funksiyasından keçirilir (ı, ş, ç, ğ tam qalır, Ə -> E olur)
+    draw.text((width // 2, 45), fix_only_e("Şansım.az"), fill=text_dark, font=font_logo, anchor="mm")
+    draw.text((width // 2, 85), fix_only_e("GÜNÜN TƏXMİNLƏRİ"), fill=text_purple, font=font_title, anchor="mm")
 
     y_offset = 120
     for match in matches:
         draw.rounded_rectangle([40, y_offset, width - 40, y_offset + 110], radius=18, fill=(255, 255, 255, 215))
 
-        league_date = sanitize_text(f"{match['league']}  |  {match['date']} UTC")
-        teams = sanitize_text(f"{match['home']}  VS  {match['away']}")
-        pred = sanitize_text(f"Təxmin: {match['prediction']}")
+        league_date = fix_only_e(f"{match['league']}  |  {match['date']} UTC")
+        teams = fix_only_e(f"{match['home']}  VS  {match['away']}")
+        pred = fix_only_e(f"Təxmin: {match['prediction']}")
 
         draw.text((60, y_offset + 15), league_date, fill=text_gray, font=font_sub)
         draw.text((60, y_offset + 42), teams, fill=text_dark, font=font_main)
@@ -200,7 +200,7 @@ def send_coupon(message):
         parse_mode='Markdown'
     )
     
-    # 2. Gemini AI tərəfindən yazılan analitik şərh (Burada Azərbaycan hərfləri tam dəstəklənir)
+    # 2. Gemini AI analitiki (Telegram mətni)
     ai_analysis_text = generate_ai_analysis(matches)
     bot.send_message(message.chat.id, ai_analysis_text, parse_mode='Markdown')
 
