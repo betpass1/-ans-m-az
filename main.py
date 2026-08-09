@@ -1,16 +1,16 @@
-import os
+Şimport os
 import requests
 import telebot
+import random
 from threading import Thread
 from flask import Flask
 
-# Tokenləri Render Environment variables-dən götürürük
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 FOOTBALL_DATA_API_KEY = os.getenv("FOOTBALL_DATA_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 1. Render-in port xətasını bağlamaq üçün pulsuz Flask Serveri
+# 1. Pulsuz Flask Serveri
 app = Flask('')
 
 @app.route('/')
@@ -25,7 +25,18 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Football Data API-dən real oyunları çəkən funksiya
+# 2. Avtomatik Təxmin Generasiyası
+def get_smart_prediction():
+    predictions = [
+        "💡 Təxmin: Ev Sahibi Qələbəsi (P1)",
+        "💡 Təxmin: Qonaq Komanda Qələbəsi (P2)",
+        "💡 Təxmin: Bərabərlik (X)",
+        "💡 Təxmin: Üst 2.5 Qol",
+        "💡 Təxmin: Hər İki Komanda Qol Vuracaq (Qol/Qol)"
+    ]
+    return random.choice(predictions)
+
+# 3. Real Oyunları Çəkən Funksiya
 def get_real_matches():
     url = "https://api.football-data.org/v4/matches"
     headers = {
@@ -52,7 +63,8 @@ def get_real_matches():
                 "home": home_team,
                 "away": away_team,
                 "league": league,
-                "date": match_date
+                "date": match_date,
+                "prediction": get_smart_prediction() # Təxmin əlavə olundu
             })
             
         return real_matches
@@ -72,11 +84,12 @@ def generate_coupon():
         text += f"🏆 {m['league']}\n"
         text += f"⚽️ {m['home']} vs {m['away']}\n"
         text += f"📅 Tarix: {m['date']}\n"
+        text += f"{m['prediction']}\n"
         text += "-------------------------\n"
         
     return text
 
-# 3. Telegram Komandaları
+# 4. Telegram Komandaları
 @bot.message_handler(commands=['start', 'kupon'])
 def send_coupon(message):
     coupon_text = generate_coupon()
@@ -88,8 +101,6 @@ def handle_all_messages(message):
         coupon_text = generate_coupon()
         bot.reply_to(message, coupon_text, parse_mode='Markdown')
 
-# Botu və Serveri işə salırıq
 if __name__ == "__main__":
     keep_alive()
     bot.infinity_polling()
-
