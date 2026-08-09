@@ -17,7 +17,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot aktivdir va islayir!"
+    return "Bot aktivdir və işləyir!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -27,17 +27,17 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Sabit və Dəqiq Nəticə Alqoritmi (Səliqəli terminlər)
+# 2. Azərbaycan hərfləri ilə dəqiq nəticə alqoritmi
 def get_smart_prediction(home, away):
     match_string = f"{home}_vs_{away}".lower()
     hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
     
     predictions = [
-        "P1 (Ev Sahibi)",
-        "Qol / Qol (Var)",
-        "2.5 Ust (Qol Sayi)",
-        "P2 (Qonaq Komanda)",
-        "X2 / GG (Beraber ve ya Qonaq)"
+        "P1 (Ev Sahibi Qələbəsi)",
+        "Qol / Qol (Hər İki Komanda)",
+        "2.5 Üst (Toplam Qol Sayı)",
+        "P2 (Qonaq Komanda Qələbəsi)",
+        "X2 / GG (Bərabərlik və ya Qonaq)"
     ]
     
     selected_index = hash_value % len(predictions)
@@ -77,7 +77,7 @@ def get_real_matches():
             
         return real_matches
     except Exception as e:
-        print(f"Xata: {e}")
+        print(f"Xəta: {e}")
         return []
 
 # 4. Pastel Gradient Arxa Fon
@@ -96,7 +96,7 @@ def draw_pastel_gradient(width, height):
             
     return base
 
-# 5. Kvadratsız və Səliqəli Şəkil Hazırlayan Funksiya
+# 5. Azərbaycan Şriftləri ilə Şəkil Hazırlayan Funksiya
 def create_coupon_image(matches):
     width = 800
     height = 200 + (len(matches) * 130)
@@ -104,32 +104,39 @@ def create_coupon_image(matches):
     img = draw_pastel_gradient(width, height)
     draw = ImageDraw.Draw(img, 'RGBA')
 
+    # Azərbaycan hərflərini (Ə, I, Ş, Ç və s.) tam dəstəkləyən Linux şriftləri
     try:
-        font_logo = ImageFont.truetype("DejaVuSans-Bold.ttf", 36)
-        font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
-        font_main = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
-        font_sub = ImageFont.truetype("DejaVuSans.ttf", 15)
+        font_logo = ImageFont.truetype("LiberationSans-Bold.ttf", 36)
+        font_title = ImageFont.truetype("LiberationSans-Bold.ttf", 22)
+        font_main = ImageFont.truetype("LiberationSans-Bold.ttf", 20)
+        font_sub = ImageFont.truetype("LiberationSans-Regular.ttf", 15)
     except:
-        font_logo = font_title = font_main = font_sub = ImageFont.load_default()
+        try:
+            font_logo = ImageFont.truetype("DejaVuSans-Bold.ttf", 36)
+            font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
+            font_main = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
+            font_sub = ImageFont.truetype("DejaVuSans.ttf", 15)
+        except:
+            font_logo = font_title = font_main = font_sub = ImageFont.load_default()
 
     # Rənglər
     text_dark = (20, 30, 55, 255)       
     text_purple = (100, 40, 140, 255)   
     text_gray = (90, 100, 120, 255)     
     
-    # Başlıqlar
-    draw.text((width // 2, 45), "Sansim.az", fill=text_dark, font=font_logo, anchor="mm")
-    draw.text((width // 2, 85), "GUNUN KUPONU", fill=text_purple, font=font_title, anchor="mm")
+    # Azərbaycan dilində başlıqlar
+    draw.text((width // 2, 45), "Şansım.az", fill=text_dark, font=font_logo, anchor="mm")
+    draw.text((width // 2, 85), "GÜNÜN TƏXMİNLƏRİ", fill=text_purple, font=font_title, anchor="mm")
 
     y_offset = 120
     for match in matches:
         # Yarı-şəffaf Ağ Kart
         draw.rounded_rectangle([40, y_offset, width - 40, y_offset + 110], radius=18, fill=(255, 255, 255, 215))
 
-        # Təmiz mətnlər
+        # Azərbaycan dilində mətnlər
         league_date = f"{match['league']}  |  {match['date']} UTC"
         teams = f"{match['home']}  VS  {match['away']}"
-        pred = f"Netice: {match['prediction']}"
+        pred = f"Təxmin: {match['prediction']}"
 
         draw.text((60, y_offset + 15), league_date, fill=text_gray, font=font_sub)
         draw.text((60, y_offset + 42), teams, fill=text_dark, font=font_main)
@@ -149,17 +156,22 @@ try:
         telebot.types.BotCommand("start", "Kuponu Al 🚀")
     ])
 except Exception as e:
-    print(f"Komanda xetasi: {e}")
+    print(f"Komanda xətası: {e}")
 
 @bot.message_handler(commands=['start', 'kupon'])
 def send_coupon(message):
     matches = get_real_matches()
     if not matches:
-        bot.reply_to(message, "⚠️ Hələ ki, tətbiq üçün aktiv/başlamamış real oyun tapılmadı.")
+        bot.reply_to(message, "⚠️ Hələ ki, tətbiq üçün aktiv və ya başlamamış real oyun tapılmadı.")
         return
 
     photo = create_coupon_image(matches)
-    bot.send_photo(message.chat.id, photo, caption="✨ **Sansim.az - Günün Yalnız Başlamamış Oyunlar Kuponu**", parse_mode='Markdown')
+    bot.send_photo(
+        message.chat.id, 
+        photo, 
+        caption="✨ **Şansım.az — Günün Yalnız Başlamamış Oyunlar Kuponu**", 
+        parse_mode='Markdown'
+    )
 
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
