@@ -37,7 +37,13 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Şəkildə Şrift Xətası Verməyən Nəticə Alqoritmi (Ə -> E əvəzləməsi ilə)
+# 2. Şəkildəki 'Ə/ə' Hərflərini Avtomatik 'E/e' Edən Köməkçi Funksiya
+def sanitize_text(text):
+    if not text:
+        return ""
+    return str(text).replace("Ə", "E").replace("ə", "e").replace("I", "I").replace("ı", "i")
+
+# 3. Nəticə Alqoritmi
 def get_smart_prediction(home, away):
     match_string = f"{home}_vs_{away}".lower()
     hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
@@ -53,7 +59,7 @@ def get_smart_prediction(home, away):
     selected_index = hash_value % len(predictions)
     return predictions[selected_index]
 
-# 3. Yalnız Başlamamış Oyunları Çəkən Funksiya
+# 4. Yalnız Başlamamış Oyunları Çəkən Funksiya
 def get_real_matches():
     url = "https://api.football-data.org/v4/matches?status=SCHEDULED,TIMED"
     headers = {
@@ -90,7 +96,7 @@ def get_real_matches():
         print(f"Xəta: {e}")
         return []
 
-# 4. AI vasitəsilə Qısa Analitik Mətn Hazırlama
+# 5. AI vasitəsilə Qısa Analitik Mətn Hazırlama
 def generate_ai_analysis(matches):
     if not ai_client:
         return "🧠 *Qısa Analiz:* Komandaların son forma göstəriciləri və ev/səfər statistikası nəzərə alınaraq tərtib edilmişdir."
@@ -110,7 +116,7 @@ def generate_ai_analysis(matches):
         print(f"AI Generasiya Xətası: {e}")
         return "🧠 *Analiz:* Oyunçuların heyət statistikası və son matç nəticələrinə əsasən formalaşdırılıb."
 
-# 5. Pastel Gradient Arxa Fon
+# 6. Pastel Gradient Arxa Fon
 def draw_pastel_gradient(width, height):
     base = Image.new('RGB', (width, height), (255, 255, 255))
     
@@ -126,7 +132,7 @@ def draw_pastel_gradient(width, height):
             
     return base
 
-# 6. 'Ə' Hərfi Xətasız Şəkil Hazırlayan Funksiya
+# 7. Təmizlənmiş və Kvadratsız Şəkil Hazırlayan Funksiya
 def create_coupon_image(matches):
     width = 800
     height = 200 + (len(matches) * 130)
@@ -135,34 +141,28 @@ def create_coupon_image(matches):
     draw = ImageDraw.Draw(img, 'RGBA')
 
     try:
-        font_logo = ImageFont.truetype("LiberationSans-Bold.ttf", 36)
-        font_title = ImageFont.truetype("LiberationSans-Bold.ttf", 22)
-        font_main = ImageFont.truetype("LiberationSans-Bold.ttf", 20)
-        font_sub = ImageFont.truetype("LiberationSans-Regular.ttf", 15)
+        font_logo = ImageFont.truetype("DejaVuSans-Bold.ttf", 36)
+        font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
+        font_main = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
+        font_sub = ImageFont.truetype("DejaVuSans.ttf", 15)
     except:
-        try:
-            font_logo = ImageFont.truetype("DejaVuSans-Bold.ttf", 36)
-            font_title = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
-            font_main = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
-            font_sub = ImageFont.truetype("DejaVuSans.ttf", 15)
-        except:
-            font_logo = font_title = font_main = font_sub = ImageFont.load_default()
+        font_logo = font_title = font_main = font_sub = ImageFont.load_default()
 
     text_dark = (20, 30, 55, 255)       
     text_purple = (100, 40, 140, 255)   
     text_gray = (90, 100, 120, 255)     
     
-    # 'Ə' hərfləri 'E' ilə dəyişdirilmiş şəkildaxili mətni
-    draw.text((width // 2, 45), "Şansım.az", fill=text_dark, font=font_logo, anchor="mm")
-    draw.text((width // 2, 85), "GÜNÜN TEXMİNLERİ", fill=text_purple, font=font_title, anchor="mm")
+    # Bütün yazılar sanitize_text() funksiyasından keçirilir
+    draw.text((width // 2, 45), sanitize_text("Şansım.az"), fill=text_dark, font=font_logo, anchor="mm")
+    draw.text((width // 2, 85), sanitize_text("GÜNÜN TƏXMİNLƏRİ"), fill=text_purple, font=font_title, anchor="mm")
 
     y_offset = 120
     for match in matches:
         draw.rounded_rectangle([40, y_offset, width - 40, y_offset + 110], radius=18, fill=(255, 255, 255, 215))
 
-        league_date = f"{match['league']}  |  {match['date']} UTC"
-        teams = f"{match['home']}  VS  {match['away']}"
-        pred = f"Texmin: {match['prediction']}"
+        league_date = sanitize_text(f"{match['league']}  |  {match['date']} UTC")
+        teams = sanitize_text(f"{match['home']}  VS  {match['away']}")
+        pred = sanitize_text(f"Təxmin: {match['prediction']}")
 
         draw.text((60, y_offset + 15), league_date, fill=text_gray, font=font_sub)
         draw.text((60, y_offset + 42), teams, fill=text_dark, font=font_main)
@@ -176,7 +176,7 @@ def create_coupon_image(matches):
     bio.seek(0)
     return bio
 
-# 7. Telegram Komandaları
+# 8. Telegram Komandaları
 try:
     bot.set_my_commands([
         telebot.types.BotCommand("start", "Kuponu Al 🚀")
@@ -200,7 +200,7 @@ def send_coupon(message):
         parse_mode='Markdown'
     )
     
-    # 2. Şəklin ardından Gemini AI tərəfindən yazılan analitik şərh
+    # 2. Gemini AI tərəfindən yazılan analitik şərh (Burada Azərbaycan hərfləri tam dəstəklənir)
     ai_analysis_text = generate_ai_analysis(matches)
     bot.send_message(message.chat.id, ai_analysis_text, parse_mode='Markdown')
 
