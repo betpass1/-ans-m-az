@@ -1,12 +1,31 @@
 import os
-import telebot
 import requests
+import telebot
+from threading import Thread
+from flask import Flask
 
+# Tokenləri Render Environment variables-dən götürürük
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 FOOTBALL_DATA_API_KEY = os.getenv("FOOTBALL_DATA_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# 1. Render-in port xətasını bağlamaq üçün pulsuz Flask Serveri
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot aktivdir və işləyir!"
+
+def run():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# 2. Football Data API-dən real oyunları çəkən funksiya
 def get_real_matches():
     url = "https://api.football-data.org/v4/matches"
     headers = {
@@ -57,16 +76,20 @@ def generate_coupon():
         
     return text
 
+# 3. Telegram Komandaları
 @bot.message_handler(commands=['start', 'kupon'])
 def send_coupon(message):
     coupon_text = generate_coupon()
     bot.reply_to(message, coupon_text, parse_mode='Markdown')
 
-# Əgər düymə ilə işləyirsə:
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
     if "kupon" in message.text.lower() or "oyun" in message.text.lower():
         coupon_text = generate_coupon()
         bot.reply_to(message, coupon_text, parse_mode='Markdown')
 
-bot.infinity_polling()
+# Botu və Serveri işə salırıq
+if __name__ == "__main__":
+    keep_alive()
+    bot.infinity_polling()
+
