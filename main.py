@@ -14,7 +14,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Gemini AI Klientinin Yaradılması
+# Gemini AI Klienti
 ai_client = None
 if GEMINI_API_KEY:
     try:
@@ -22,7 +22,7 @@ if GEMINI_API_KEY:
     except Exception as e:
         print(f"AI Xətası: {e}")
 
-# 1. Flask Serveri
+# 1. Flask Serveri (Render üçün)
 app = Flask('')
 
 @app.route('/')
@@ -37,17 +37,17 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Sabit Təxmin Alqoritmi
+# 2. Şəkildə Şrift Xətası Verməyən Nəticə Alqoritmi (Ə -> E əvəzləməsi ilə)
 def get_smart_prediction(home, away):
     match_string = f"{home}_vs_{away}".lower()
     hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
     
     predictions = [
-        "P1 (Ev Sahibi Qələbəsi)",
-        "Qol / Qol (Hər İki Komanda)",
-        "2.5 Üst (Toplam Qol Sayı)",
-        "P2 (Qonaq Komanda Qələbəsi)",
-        "X2 / GG (Bərabərlik və ya Qonaq)"
+        "P1 (Ev Sahibi Qelebesi)",
+        "Qol / Qol (Her İki Komanda)",
+        "2.5 Ust (Toplam Qol Sayi)",
+        "P2 (Qonaq Komanda Qelebesi)",
+        "X2 / GG (Beraberlik ve ya Qonaq)"
     ]
     
     selected_index = hash_value % len(predictions)
@@ -126,7 +126,7 @@ def draw_pastel_gradient(width, height):
             
     return base
 
-# 6. Şəkil Hazırlayan Funksiya
+# 6. 'Ə' Hərfi Xətasız Şəkil Hazırlayan Funksiya
 def create_coupon_image(matches):
     width = 800
     height = 200 + (len(matches) * 130)
@@ -152,8 +152,9 @@ def create_coupon_image(matches):
     text_purple = (100, 40, 140, 255)   
     text_gray = (90, 100, 120, 255)     
     
+    # 'Ə' hərfləri 'E' ilə dəyişdirilmiş şəkildaxili mətni
     draw.text((width // 2, 45), "Şansım.az", fill=text_dark, font=font_logo, anchor="mm")
-    draw.text((width // 2, 85), "GÜNÜN TƏXMİNLƏRİ", fill=text_purple, font=font_title, anchor="mm")
+    draw.text((width // 2, 85), "GÜNÜN TEXMİNLERİ", fill=text_purple, font=font_title, anchor="mm")
 
     y_offset = 120
     for match in matches:
@@ -161,7 +162,7 @@ def create_coupon_image(matches):
 
         league_date = f"{match['league']}  |  {match['date']} UTC"
         teams = f"{match['home']}  VS  {match['away']}"
-        pred = f"Təxmin: {match['prediction']}"
+        pred = f"Texmin: {match['prediction']}"
 
         draw.text((60, y_offset + 15), league_date, fill=text_gray, font=font_sub)
         draw.text((60, y_offset + 42), teams, fill=text_dark, font=font_main)
@@ -190,7 +191,7 @@ def send_coupon(message):
         bot.reply_to(message, "⚠️ Hələ ki, tətbiq üçün aktiv və ya başlamamış real oyun tapılmadı.")
         return
 
-    # 1. Əvvəlcə Şəkli Göndərir
+    # 1. Şəkli Göndərir
     photo = create_coupon_image(matches)
     bot.send_photo(
         message.chat.id, 
@@ -199,7 +200,7 @@ def send_coupon(message):
         parse_mode='Markdown'
     )
     
-    # 2. Şəklin Ardınca AI Tərəfindən Hazırlanmış Mətni Göndərir
+    # 2. Şəklin ardından Gemini AI tərəfindən yazılan analitik şərh
     ai_analysis_text = generate_ai_analysis(matches)
     bot.send_message(message.chat.id, ai_analysis_text, parse_mode='Markdown')
 
