@@ -12,7 +12,7 @@ FOOTBALL_DATA_API_KEY = os.getenv("FOOTBALL_DATA_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 1. Flask Serveri (Render üçün)
+# 1. Flask Serveri
 app = Flask('')
 
 @app.route('/')
@@ -33,11 +33,11 @@ def get_smart_prediction(home, away):
     hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
     
     predictions = [
-        "P1 (Ev Sahibi Qələbəsi)",
-        "Qol/Qol (Hər İki Komanda)",
-        "2.5 Üst (Toplam Qol)",
-        "P2 (Qonaq Komanda Qələbəsi)",
-        "X2 / GG (Bərabərlik/Qol)"
+        "P1 (Ev Sahibi Qalib)",
+        "Qol/Qol (Har Iki Komanda)",
+        "2.5 Ust (Toplam Qol)",
+        "P2 (Qonaq Komanda Qalib)",
+        "X2 / GG (Barabarlik / Qol)"
     ]
     
     selected_index = hash_value % len(predictions)
@@ -77,15 +77,13 @@ def get_real_matches():
             
         return real_matches
     except Exception as e:
-        print(f"Xəta: {e}")
+        print(f"Xata: {e}")
         return []
 
-# 4. Pastel Gradient Fon Yaradan Funksiya
+# 4. Pastel Gradient Fon
 def draw_pastel_gradient(width, height):
     base = Image.new('RGB', (width, height), (255, 255, 255))
-    top = Image.new('RGB', (width, height), (255, 255, 255))
     
-    # Gradient Rəngləri: Çəhrayı, Sarı, Yaşıl, Bənövşəyi keçidləri
     for y in range(height):
         r = int(255 - (y / height) * 40)
         g = int(200 + (y / height) * 35)
@@ -98,12 +96,11 @@ def draw_pastel_gradient(width, height):
             
     return base
 
-# 5. Kuponu Rəngarəng Fonda Şəkildə Hazırlayan Funksiya
+# 5. Kvadrat və Simvol Xətasız Kupon Şəkli
 def create_coupon_image(matches):
     width = 800
     height = 200 + (len(matches) * 130)
     
-    # 3:4 yaxın nisbətdə rəngarəng arka fon
     img = draw_pastel_gradient(width, height)
     draw = ImageDraw.Draw(img, 'RGBA')
 
@@ -116,23 +113,23 @@ def create_coupon_image(matches):
         font_logo = font_title = font_main = font_sub = ImageFont.load_default()
 
     # Rənglər
-    text_dark = (20, 30, 55, 255)       # Tünd göy
-    text_purple = (100, 40, 140, 255)   # Tünd bənövşəyi
-    text_gray = (90, 100, 120, 255)     # Tünd boz
+    text_dark = (20, 30, 55, 255)       
+    text_purple = (100, 40, 140, 255)   
+    text_gray = (90, 100, 120, 255)     
     
-    # Başlıq (Sansım.az)
-    draw.text((width // 2, 45), "Sansım.az", fill=text_dark, font=font_logo, anchor="mm")
-    draw.text((width // 2, 85), "GÜNÜN TƏXMİNLƏRİ", fill=text_purple, font=font_title, anchor="mm")
+    # Başlıq
+    draw.text((width // 2, 45), "Sansim.az", fill=text_dark, font=font_logo, anchor="mm")
+    draw.text((width // 2, 85), "GUNUN TAXMINLARI", fill=text_purple, font=font_title, anchor="mm")
 
     y_offset = 120
     for match in matches:
-        # Şəffaf Ağ Kart (Yazılar aydın görünsün deyə)
-        draw.rounded_rectangle([40, y_offset, width - 40, y_offset + 110], radius=18, fill=(255, 255, 255, 210))
+        # Yarı-şəffaf Ağ Kart
+        draw.rounded_rectangle([40, y_offset, width - 40, y_offset + 110], radius=18, fill=(255, 255, 255, 215))
 
-        # Mətnlər
-        league_date = f"🏆 {match['league']}  |  📅 {match['date']} UTC"
+        # Şəkildə kvadrat yaratmayan təmiz mətn formatları
+        league_date = f"> {match['league']}   |   {match['date']} UTC"
         teams = f"{match['home']}  VS  {match['away']}"
-        pred = f"💡 {match['prediction']}"
+        pred = f"• Taxmin: {match['prediction']}"
 
         draw.text((60, y_offset + 15), league_date, fill=text_gray, font=font_sub)
         draw.text((60, y_offset + 42), teams, fill=text_dark, font=font_main)
@@ -152,7 +149,7 @@ try:
         telebot.types.BotCommand("start", "Kuponu Al 🚀")
     ])
 except Exception as e:
-    print(f"Komanda xətası: {e}")
+    print(f"Komanda xetasi: {e}")
 
 @bot.message_handler(commands=['start', 'kupon'])
 def send_coupon(message):
