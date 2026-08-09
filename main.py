@@ -6,13 +6,23 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageFont
 from threading import Thread
 from flask import Flask
+from google import genai
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 FOOTBALL_DATA_API_KEY = os.getenv("FOOTBALL_DATA_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 1. Flask Serveri (Render üçün)
+# Gemini AI Klientinin Yaradılması
+ai_client = None
+if GEMINI_API_KEY:
+    try:
+        ai_client = genai.Client(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"AI Xətası: {e}")
+
+# 1. Flask Serveri
 app = Flask('')
 
 @app.route('/')
@@ -27,7 +37,7 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Azərbaycan hərfləri ilə dəqiq nəticə alqoritmi
+# 2. Sabit Təxmin Alqoritmi
 def get_smart_prediction(home, away):
     match_string = f"{home}_vs_{away}".lower()
     hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
@@ -80,7 +90,27 @@ def get_real_matches():
         print(f"Xəta: {e}")
         return []
 
-# 4. Pastel Gradient Arxa Fon
+# 4. AI vasitəsilə Qısa Analitik Mətn Hazırlama
+def generate_ai_analysis(matches):
+    if not ai_client:
+        return "🧠 *Qısa Analiz:* Komandaların son forma göstəriciləri və ev/səfər statistikası nəzərə alınaraq tərtib edilmişdir."
+    
+    prompt = "Sən professional futbol analitikisən. Aşağıdakı matçlar və verilən təxminlər üçün hər birinə ÇOX QISA (1 cümləlik) professional analitik əsaslandırma yaz. Azərbaycan dilində olsun, səliqəli siyahı şəklində təqdim et:\n\n"
+    
+    for m in matches:
+        prompt += f"- {m['home']} vs {m['away']} (Təxmin: {m['prediction']})\n"
+
+    try:
+        response = ai_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
+        return f"🧠 **AI Matç Analizləri və Əsaslandırma:**\n\n{response.text}"
+    except Exception as e:
+        print(f"AI Generasiya Xətası: {e}")
+        return "🧠 *Analiz:* Oyunçuların heyət statistikası və son matç nəticələrinə əsasən formalaşdırılıb."
+
+# 5. Pastel Gradient Arxa Fon
 def draw_pastel_gradient(width, height):
     base = Image.new('RGB', (width, height), (255, 255, 255))
     
@@ -96,7 +126,7 @@ def draw_pastel_gradient(width, height):
             
     return base
 
-# 5. Azərbaycan Şriftləri ilə Şəkil Hazırlayan Funksiya
+# 6. Şəkil Hazırlayan Funksiya
 def create_coupon_image(matches):
     width = 800
     height = 200 + (len(matches) * 130)
@@ -104,7 +134,6 @@ def create_coupon_image(matches):
     img = draw_pastel_gradient(width, height)
     draw = ImageDraw.Draw(img, 'RGBA')
 
-    # Azərbaycan hərflərini (Ə, I, Ş, Ç və s.) tam dəstəkləyən Linux şriftləri
     try:
         font_logo = ImageFont.truetype("LiberationSans-Bold.ttf", 36)
         font_title = ImageFont.truetype("LiberationSans-Bold.ttf", 22)
@@ -119,21 +148,17 @@ def create_coupon_image(matches):
         except:
             font_logo = font_title = font_main = font_sub = ImageFont.load_default()
 
-    # Rənglər
     text_dark = (20, 30, 55, 255)       
     text_purple = (100, 40, 140, 255)   
     text_gray = (90, 100, 120, 255)     
     
-    # Azərbaycan dilində başlıqlar
     draw.text((width // 2, 45), "Şansım.az", fill=text_dark, font=font_logo, anchor="mm")
     draw.text((width // 2, 85), "GÜNÜN TƏXMİNLƏRİ", fill=text_purple, font=font_title, anchor="mm")
 
     y_offset = 120
     for match in matches:
-        # Yarı-şəffaf Ağ Kart
         draw.rounded_rectangle([40, y_offset, width - 40, y_offset + 110], radius=18, fill=(255, 255, 255, 215))
 
-        # Azərbaycan dilində mətnlər
         league_date = f"{match['league']}  |  {match['date']} UTC"
         teams = f"{match['home']}  VS  {match['away']}"
         pred = f"Təxmin: {match['prediction']}"
@@ -150,7 +175,7 @@ def create_coupon_image(matches):
     bio.seek(0)
     return bio
 
-# 6. Telegram Komandaları
+# 7. Telegram Komandaları
 try:
     bot.set_my_commands([
         telebot.types.BotCommand("start", "Kuponu Al 🚀")
@@ -165,6 +190,7 @@ def send_coupon(message):
         bot.reply_to(message, "⚠️ Hələ ki, tətbiq üçün aktiv və ya başlamamış real oyun tapılmadı.")
         return
 
+    # 1. Əvvəlcə Şəkli Göndərir
     photo = create_coupon_image(matches)
     bot.send_photo(
         message.chat.id, 
@@ -172,6 +198,10 @@ def send_coupon(message):
         caption="✨ **Şansım.az — Günün Yalnız Başlamamış Oyunlar Kuponu**", 
         parse_mode='Markdown'
     )
+    
+    # 2. Şəklin Ardınca AI Tərəfindən Hazırlanmış Mətni Göndərir
+    ai_analysis_text = generate_ai_analysis(matches)
+    bot.send_message(message.chat.id, ai_analysis_text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
