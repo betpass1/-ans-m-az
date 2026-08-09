@@ -17,7 +17,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot aktivdir və işləyir!"
+    return "Bot aktivdir va islayir!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -27,23 +27,23 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Sabit Təxmin Alqoritmi
+# 2. Sabit Taxmin Alqoritmi (Yalniz standart Latin herfleri)
 def get_smart_prediction(home, away):
     match_string = f"{home}_vs_{away}".lower()
     hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
     
     predictions = [
-        "P1 (Ev Sahibi Qalib)",
+        "P1 (Ev Sahibi Galib)",
         "Qol/Qol (Har Iki Komanda)",
         "2.5 Ust (Toplam Qol)",
-        "P2 (Qonaq Komanda Qalib)",
+        "P2 (Qonaq Komanda Galib)",
         "X2 / GG (Barabarlik / Qol)"
     ]
     
     selected_index = hash_value % len(predictions)
     return predictions[selected_index]
 
-# 3. Yalnız Başlamamış Oyunları Çəkən Funksiya
+# 3. Yalniz Baslamamis Oyunlari Cakan Funksiya
 def get_real_matches():
     url = "https://api.football-data.org/v4/matches?status=SCHEDULED,TIMED"
     headers = {
@@ -96,7 +96,7 @@ def draw_pastel_gradient(width, height):
             
     return base
 
-# 5. Kvadrat və Simvol Xətasız Kupon Şəkli
+# 5. Tam Kvadratsiz va Xetasiz Sekil Funksiyasi
 def create_coupon_image(matches):
     width = 800
     height = 200 + (len(matches) * 130)
@@ -112,24 +112,24 @@ def create_coupon_image(matches):
     except:
         font_logo = font_title = font_main = font_sub = ImageFont.load_default()
 
-    # Rənglər
+    # Ranglar
     text_dark = (20, 30, 55, 255)       
     text_purple = (100, 40, 140, 255)   
     text_gray = (90, 100, 120, 255)     
     
-    # Başlıq
+    # Basliqlar
     draw.text((width // 2, 45), "Sansim.az", fill=text_dark, font=font_logo, anchor="mm")
     draw.text((width // 2, 85), "GUNUN TAXMINLARI", fill=text_purple, font=font_title, anchor="mm")
 
     y_offset = 120
     for match in matches:
-        # Yarı-şəffaf Ağ Kart
+        # Yari-saffaf Ag Kart
         draw.rounded_rectangle([40, y_offset, width - 40, y_offset + 110], radius=18, fill=(255, 255, 255, 215))
 
-        # Şəkildə kvadrat yaratmayan təmiz mətn formatları
-        league_date = f"> {match['league']}   |   {match['date']} UTC"
+        # Hec bir simvol va problemli hərf istifadə olunmayan xətsiz mətnlər
+        league_date = f"{match['league']}  |  {match['date']} UTC"
         teams = f"{match['home']}  VS  {match['away']}"
-        pred = f"• Taxmin: {match['prediction']}"
+        pred = f"Taxmin: {match['prediction']}"
 
         draw.text((60, y_offset + 15), league_date, fill=text_gray, font=font_sub)
         draw.text((60, y_offset + 42), teams, fill=text_dark, font=font_main)
@@ -143,7 +143,7 @@ def create_coupon_image(matches):
     bio.seek(0)
     return bio
 
-# 6. Telegram Komandaları
+# 6. Telegram Komandalari
 try:
     bot.set_my_commands([
         telebot.types.BotCommand("start", "Kuponu Al 🚀")
@@ -159,7 +159,7 @@ def send_coupon(message):
         return
 
     photo = create_coupon_image(matches)
-    bot.send_photo(message.chat.id, photo, caption="✨ **Sansım.az - Günün Yalnız Başlamamış Oyunlar Kuponu**", parse_mode='Markdown')
+    bot.send_photo(message.chat.id, photo, caption="✨ **Sansim.az - Gunun Yalniz Baslamamis Oyunlar Kuponu**", parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
