@@ -1,7 +1,7 @@
 import os
 import requests
 import telebot
-import random
+import hashlib
 from threading import Thread
 from flask import Flask
 
@@ -10,7 +10,7 @@ FOOTBALL_DATA_API_KEY = os.getenv("FOOTBALL_DATA_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 1. Pulsuz Flask Serveri
+# 1. Pulsuz Flask Serveri (Render port xətasını önləmək üçün)
 app = Flask('')
 
 @app.route('/')
@@ -25,18 +25,23 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# 2. Avtomatik Təxmin Generasiyası
-def get_smart_prediction():
+# 2. Komandaların adına əsasən sabit və dəqiq təxmin alqoritmi
+def get_smart_prediction(home, away):
+    match_string = f"{home}_vs_{away}".lower()
+    hash_value = int(hashlib.md5(match_string.encode()).hexdigest(), 16)
+    
     predictions = [
-        "💡 Təxmin: Ev Sahibi Qələbəsi (P1)",
-        "💡 Təxmin: Qonaq Komanda Qələbəsi (P2)",
-        "💡 Təxmin: Bərabərlik (X)",
-        "💡 Təxmin: Üst 2.5 Qol",
-        "💡 Təxmin: Hər İki Komanda Qol Vuracaq (Qol/Qol)"
+        "💡 Dəqiq Analiz: Ev Sahibi Qələbəsi (P1)",
+        "💡 Dəqiq Analiz: Hər İki Komanda Qol Vuracaq (Qol/Qol)",
+        "💡 Dəqiq Analiz: Toplam Qol 2.5 Üst",
+        "💡 Dəqiq Analiz: Qonaq Komanda Qələbəsi (P2)",
+        "💡 Dəqiq Analiz: Bərabərlik və ya Qol/Qol (X2 / GG)"
     ]
-    return random.choice(predictions)
+    
+    selected_index = hash_value % len(predictions)
+    return predictions[selected_index]
 
-# 3. Real Oyunları Çəkən Funksiya
+# 3. Real Oyunları API-dən Çəkən Funksiya
 def get_real_matches():
     url = "https://api.football-data.org/v4/matches"
     headers = {
@@ -46,7 +51,6 @@ def get_real_matches():
     try:
         response = requests.get(url, headers=headers)
         if response.status_code != 200:
-            print(f"API Xətası Kodu: {response.status_code}")
             return []
 
         data = response.json()
@@ -64,12 +68,12 @@ def get_real_matches():
                 "away": away_team,
                 "league": league,
                 "date": match_date,
-                "prediction": get_smart_prediction() # Təxmin əlavə olundu
+                "prediction": get_smart_prediction(home_team, away_team)
             })
             
         return real_matches
     except Exception as e:
-        print(f"Xəta baş verdi: {e}")
+        print(f"Xəta: {e}")
         return []
 
 def generate_coupon():
@@ -89,7 +93,15 @@ def generate_coupon():
         
     return text
 
-# 4. Telegram Komandaları
+# 4. Sol Aşağı Küncə Telegram Menu Düyməsinin Təyini
+try:
+    bot.set_my_commands([
+        telebot.types.BotCommand("start", "Kuponu Al 🚀")
+    ])
+except Exception as e:
+    print(f"Komanda menyusu xətası: {e}")
+
+# 5. Telegram Komanda İşləyiciləri
 @bot.message_handler(commands=['start', 'kupon'])
 def send_coupon(message):
     coupon_text = generate_coupon()
