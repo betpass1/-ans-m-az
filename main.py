@@ -10,7 +10,7 @@ FOOTBALL_DATA_API_KEY = os.getenv("FOOTBALL_DATA_API_KEY")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 1. Pulsuz Flask Serveri (Render port xətasını önləmək üçün)
+# 1. Pulsuz Flask Serveri (Render-in yuxuya getməməsi və port xətasını önləmək üçün)
 app = Flask('')
 
 @app.route('/')
@@ -41,9 +41,10 @@ def get_smart_prediction(home, away):
     selected_index = hash_value % len(predictions)
     return predictions[selected_index]
 
-# 3. Real Oyunları API-dən Çəkən Funksiya
+# 3. Yalnız HƏLƏ BAŞLAMAMIŞ (SCHEDULED/TIMED) Real Oyunları Çəkən Funksiya
 def get_real_matches():
-    url = "https://api.football-data.org/v4/matches"
+    # status=SCHEDULED,TIMED parametri bitmiş və davam edən oyunları süzgəcdən keçirir
+    url = "https://api.football-data.org/v4/matches?status=SCHEDULED,TIMED"
     headers = {
         "X-Auth-Token": FOOTBALL_DATA_API_KEY
     }
@@ -57,11 +58,15 @@ def get_real_matches():
         matches = data.get("matches", [])
         
         real_matches = []
+        # Siyahıdakı hələ başlamamış ilk 5 oyunu götürürük
         for match in matches[:5]:
             home_team = match["homeTeam"]["name"]
             away_team = match["awayTeam"]["name"]
             league = match["competition"]["name"]
-            match_date = match["utcDate"].split("T")[0]
+            
+            # Tarix və saat formatı (YYYY-MM-DD HH:MM)
+            raw_date = match["utcDate"].replace("T", " ").replace("Z", "")
+            match_date = raw_date[:16]
             
             real_matches.append({
                 "home": home_team,
@@ -80,14 +85,14 @@ def generate_coupon():
     matches = get_real_matches()
     
     if not matches:
-        return "⚠️ Bu gün üçün sistemdə aktiv real oyun tapılmadı və ya API xətası var."
+        return "⚠️ Hələ ki, tətbiq üçün aktiv/başlamamış real oyun tapılmadı və ya API xətası var."
     
-    text = "🔥 **Günün Real Oyunlar Kuponu** 🔥\n\n"
+    text = "🔥 **Günün Yalnız Başlamamış Oyunlar Kuponu** 🔥\n\n"
     
     for m in matches:
         text += f"🏆 {m['league']}\n"
         text += f"⚽️ {m['home']} vs {m['away']}\n"
-        text += f"📅 Tarix: {m['date']}\n"
+        text += f"📅 Tarix/Saat: {m['date']} UTC\n"
         text += f"{m['prediction']}\n"
         text += "-------------------------\n"
         
@@ -109,7 +114,8 @@ def send_coupon(message):
 
 @bot.message_handler(func=lambda message: True)
 def handle_all_messages(message):
-    if "kupon" in message.text.lower() or "oyun" in message.text.lower():
+    text = message.text.lower()
+    if "kupon" in text or "oyun" in text or "start" in text:
         coupon_text = generate_coupon()
         bot.reply_to(message, coupon_text, parse_mode='Markdown')
 
